@@ -1,0 +1,147 @@
+-- SCRIPT: SUPREME GHOST V19 (FIXED ABSOLUTE DESCENT - XUYÊN TẤT CẢ)
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- [CẤU HÌNH]
+_G.GhostV4 = false 
+_G.GhostV6 = false 
+_G.GodSky = false 
+_G.ExtremeReach = false
+_G.SkyHeight = 3500 
+
+-- [GIAO DIỆN V19]
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 210, 0, 360)
+Main.Position = UDim2.new(0.05, 0, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(255, 0, 0)
+Main.Active = true
+Main.Draggable = true
+
+local function CreateBtn(name, pos, var, isFunction, customFunc)
+    local btn = Instance.new("TextButton", Main)
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, pos)
+    btn.Text = name .. (not isFunction and ": OFF" or "")
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Code
+    btn.TextSize = 10
+
+    btn.MouseButton1Click:Connect(function()
+        if isFunction then
+            if customFunc then customFunc() else pcall(function() LP.Character:BreakJoints() end) end
+        else
+            _G[var] = not _G[var]
+            btn.Text = name .. ": " .. (_G[var] and "ON" or "OFF")
+            btn.BackgroundColor3 = _G[var] and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(20, 20, 20)
+        end
+    end)
+end
+
+-- [HÀM XUỐNG ĐẤT SIÊU CẤP - FIX LỖI KHÔNG XUỐNG ĐƯỢC]
+local function ForceGoDown()
+    pcall(function()
+        local char = LP.Character
+        local hrp = char.HumanoidRootPart
+        
+        -- 1. Bật Noclip liên tục để đảm bảo không kẹt trần/sàn
+        local noclipLoop = RunService.Stepped:Connect(function()
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end
+        end)
+        
+        -- 2. Quét tìm mặt đất (Raycast diện rộng)
+        local params = RaycastParams.new()
+        params.FilterDescendantsInstances = {char, workspace.CurrentCamera}
+        params.FilterType = Enum.RaycastFilterType.Blacklist
+        
+        -- Bắn tia từ trên cực cao xuống để tránh bị lọt tia qua khe hở
+        local startPos = hrp.Position + Vector3.new(0, 50, 0)
+        local result = workspace:Raycast(startPos, Vector3.new(0, -10000, 0), params)
+        
+        if result then
+            -- 3. Ép tọa độ ngay lập tức
+            hrp.CFrame = CFrame.new(result.Position + Vector3.new(0, 4, 0))
+            hrp.Velocity = Vector3.new(0, 0, 0)
+        else
+            -- 4. Nếu không thấy mặt đất (lỗi map), ép về tọa độ Y mặc định của server
+            hrp.CFrame = CFrame.new(hrp.Position.X, 10, hrp.Position.Z)
+        end
+        
+        task.wait(0.3)
+        noclipLoop:Disconnect() -- Tắt noclip sau khi đã đáp an toàn
+    end)
+end
+
+-- [THIẾT LẬP NÚT BẤM]
+CreateBtn("GHOST V4 (INVIS)", 15, "GhostV4")
+CreateBtn("FLY V6 (XUYÊN TƯỜNG)", 60, "GhostV6")
+CreateBtn("PHANTOM UP (GOD SKY)", 105, "GodSky")
+CreateBtn("FORCE DOWN (ĐÁP ĐẤT)", 150, nil, true, ForceGoDown) -- Nút quan trọng nhất
+CreateBtn("REACH PK (+120M)", 210, "ExtremeReach")
+CreateBtn("ULTRA REFRESH", 255, nil, true)
+
+-- [LOGIC GOD SKY - PHANTOM UP]
+RunService.Stepped:Connect(function()
+    if _G.GodSky and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LP.Character.HumanoidRootPart
+        local oldCF = hrp.CFrame
+        hrp.Velocity = Vector3.new(0, 0, 0)
+        
+        -- Tự động noclip khi đang ở trên trời
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+
+        -- Nháy lên (Xuyên mọi nóc nhà)
+        hrp.CFrame = oldCF * CFrame.new(0, _G.SkyHeight, 0)
+        RunService.RenderStepped:Wait()
+        hrp.CFrame = oldCF
+    end
+end)
+
+-- [FLY V6 LOGIC]
+RunService.RenderStepped:Connect(function()
+    if _G.GhostV6 and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LP.Character.HumanoidRootPart
+        LP.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        local bv = hrp:FindFirstChild("SupremeFly") or Instance.new("BodyVelocity", hrp)
+        bv.Name = "SupremeFly"
+        bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 250
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    elseif not _G.GhostV6 and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+        if LP.Character.HumanoidRootPart:FindFirstChild("SupremeFly") then 
+            LP.Character.HumanoidRootPart.SupremeFly:Destroy() 
+        end
+    end
+end)
+
+-- [REACH PK LOGIC]
+RunService.RenderStepped:Connect(function()
+    if _G.ExtremeReach then
+        local target = nil
+        local dist = 120
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+                local mag = (v.Character.HumanoidRootPart.Position - LP.Character.HumanoidRootPart.Position).Magnitude
+                if mag < dist then dist = mag target = v.Character.HumanoidRootPart end
+            end
+        end
+        local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+        if target and tool then
+            local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("Part")
+            if handle then firetouchinterest(target, handle, 0) firetouchinterest(target, handle, 1) end
+        end
+    end
+end)
