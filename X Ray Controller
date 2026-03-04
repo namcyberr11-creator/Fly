@@ -1,4 +1,4 @@
--- [[ VŨ KHOA X-RAY CONTROLLER V33 - PISTON FORCE DOWN ]]
+-- [[ VŨ KHOA X-RAY CONTROLLER V30 - INTEGRATED NOCLIP ]]
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -7,7 +7,7 @@ local TitleLabel = Instance.new("TextLabel")
 local CloseBtn = Instance.new("TextButton")
 local ScrollFrame = Instance.new("ScrollingFrame")
 
--- Premium Style
+-- Style
 local function applyStyle(obj, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 12)
@@ -17,23 +17,23 @@ local function applyStyle(obj, radius)
     end
 end
 
-ScreenGui.Name = "VuKhoa_V33_Piston"
+ScreenGui.Name = "VuKhoa_V30_NoclipMove"
 ScreenGui.Parent = game:GetService("CoreGui")
 
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.5, -115, 0.3, 0)
 MainFrame.Size = UDim2.new(0, 230, 0, 380)
-MainFrame.Active = true; MainFrame.Draggable = true
-applyStyle(MainFrame, 18)
+MainFrame.ClipsDescendants = true
+applyStyle(MainFrame, 15)
 
 TitleBar.Parent = MainFrame
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-applyStyle(TitleBar, 15)
+applyStyle(TitleBar, 12)
 
 TitleLabel.Parent = TitleBar
-TitleLabel.Text = "  VŨ KHOA V33 - PISTON"
+TitleLabel.Text = "  VŨ KHOA V30 - NOCLIP"
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.BackgroundTransparency = 1; applyStyle(TitleLabel, 0)
@@ -46,12 +46,12 @@ applyStyle(CloseBtn, 8)
 
 ScrollFrame.Parent = MainFrame
 ScrollFrame.Position = UDim2.new(0, 0, 0, 45)
-ScrollFrame.Size = UDim2.new(1, 0, 1, -55)
+ScrollFrame.Size = UDim2.new(1, 0, 1, -50)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 550)
 
 local UIList = Instance.new("UIListLayout", ScrollFrame)
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center; UIList.Padding = UDim.new(0, 10)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center; UIList.Padding = UDim.new(0, 8)
 
 -- [ DI CHUYỂN GRID ]
 local ButtonsGrid = Instance.new("Frame", ScrollFrame)
@@ -62,11 +62,11 @@ UIGrid.CellSize = UDim2.new(0.48, 0, 0, 40)
 local localMoveDir = Vector3.new(0,0,0)
 local function createMoveBtn(txt, vec)
     local btn = Instance.new("TextButton", ButtonsGrid)
-    btn.Text = txt; btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35); applyStyle(btn, 10)
+    btn.Text = txt; btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); applyStyle(btn, 8)
     local active = false
     btn.MouseButton1Click:Connect(function()
         active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(35, 35, 35)
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(40, 40, 40)
         if active then localMoveDir = localMoveDir + vec else localMoveDir = localMoveDir - vec end
     end)
 end
@@ -77,44 +77,37 @@ createMoveBtn("LÊN", Vector3.new(0,1,0)); createMoveBtn("XUỐNG", Vector3.new(
 
 local SpeedInput = Instance.new("TextBox", ScrollFrame)
 SpeedInput.Size = UDim2.new(0.9, 0, 0, 40); SpeedInput.Text = "50"
-SpeedInput.BackgroundColor3 = Color3.fromRGB(35,35,35); applyStyle(SpeedInput, 10)
+SpeedInput.BackgroundColor3 = Color3.fromRGB(40,40,40); applyStyle(SpeedInput, 10)
 
--- [[ LOGIC PISTON & NOCLIP ]]
-local currentSpeed, ghimActive, ghostActive = 50, false, false
-local ghostModel, ghostPos, downPiston = nil, Vector3.new(0,0,0), nil
+-- [ CHỨC NĂNG ]
+local function createLongBtn(txt, color)
+    local btn = Instance.new("TextButton", ScrollFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 40); btn.Text = txt
+    btn.BackgroundColor3 = color or Color3.fromRGB(40, 40, 40); applyStyle(btn, 10); return btn
+end
+
+local GhimBtnObj = createLongBtn("GHIM VỊ TRÍ: TẮT")
+local AirWalkBtnObj = createLongBtn("AIR WALK: TẮT")
+local GhostBtnObj = createLongBtn("GHOST MODE: TẮT", Color3.fromRGB(180, 50, 50))
+
+-- [[ LOGIC CẬP NHẬT - NOCLIP MOVE ]]
+local currentSpeed, airWalkActive, ghimActive, ghostActive = 50, false, false, false
+local ghostModel, ghostPos, airWalkPart = nil, Vector3.new(0,0,0), nil
 local lockedPos = nil
 
 SpeedInput.FocusLost:Connect(function() currentSpeed = tonumber(SpeedInput.Text) or 50 end)
 
--- Vòng lặp Noclip và Piston
 game:GetService("RunService").Stepped:Connect(function()
-    local char = game.Players.LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local root = char.HumanoidRootPart
-
-    -- 1. Xử lý Noclip khi di chuyển
+    -- Hệ thống Noclip: Chỉ hoạt động khi đang di chuyển bằng script
     if localMoveDir.Magnitude > 0 or ghostActive then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
         end
-    end
-
-    -- 2. Xử lý PISTON ĐÈ ĐẦU (Khi bấm nút XUỐNG)
-    if localMoveDir.Y < 0 then
-        if not downPiston then
-            downPiston = Instance.new("Part")
-            downPiston.Name = "VuKhoa_Piston"
-            downPiston.Size = Vector3.new(6, 1, 6)
-            downPiston.Transparency = 0.8
-            downPiston.Color = Color3.fromRGB(255, 0, 0)
-            downPiston.Anchored = true
-            downPiston.CanCollide = true -- Phải để true để nó đè được đầu
-            downPiston.Parent = workspace
-        end
-        -- Luôn đặt miếng nhựa ngay sát phía trên đầu để ép xuống
-        downPiston.CFrame = root.CFrame * CFrame.new(0, 2.8, 0)
-    else
-        if downPiston then downPiston:Destroy(); downPiston = nil end
     end
 end)
 
@@ -138,7 +131,7 @@ game:GetService("RunService").RenderStepped:Connect(function(dt)
         if lockedPos then root.CFrame = lockedPos end
         root.Velocity = Vector3.new(0,0,0)
     elseif localMoveDir.Magnitude > 0 then
-        -- DI CHUYỂN TRƯỢT MƯỢT
+        -- DI CHUYỂN TRƯỢT MƯỢT + NOCLIP
         local direction = (moveVec * currentSpeed) + (upVec * currentSpeed)
         root.CFrame = root.CFrame:Lerp(root.CFrame + (direction * dt), 0.5) 
         if ghimActive then lockedPos = root.CFrame end
@@ -146,14 +139,64 @@ game:GetService("RunService").RenderStepped:Connect(function(dt)
         root.CFrame = lockedPos
         root.Velocity = Vector3.new(0,0,0)
     end
+
+    if airWalkActive and airWalkPart then
+        local target = ghostActive and ghostModel.HumanoidRootPart or root
+        airWalkPart.Position = target.Position - Vector3.new(0, 3.5, 0)
+    end
 end)
 
--- [ UI LOGIC ]
+-- [ UI DRAG & CLOSE LOGIC ]
+local dragging, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+    end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+game:GetService("UserInputService").InputEnded:Connect(function() dragging = false end)
+
+local isOpen = true
 CloseBtn.MouseButton1Click:Connect(function()
-    local isOpen = ScrollFrame.Visible
-    ScrollFrame.Visible = not isOpen
-    MainFrame.Size = isOpen and UDim2.new(0, 230, 0, 40) or UDim2.new(0, 230, 0, 380)
-    CloseBtn.Text = isOpen and "▼" or "▲"
+    isOpen = not isOpen
+    MainFrame:TweenSize(isOpen and UDim2.new(0, 230, 0, 380) or UDim2.new(0, 230, 0, 40), "Out", "Quad", 0.3, true)
+    CloseBtn.Text = isOpen and "▲" or "▼"; ScrollFrame.Visible = isOpen
+end)
+
+GhimBtnObj.MouseButton1Click:Connect(function()
+    ghimActive = not ghimActive
+    local r = game.Players.LocalPlayer.Character.HumanoidRootPart
+    if ghimActive then lockedPos = r.CFrame; GhimBtnObj.Text = "GHIM: BẬT" else lockedPos = nil; GhimBtnObj.Text = "GHIM: TẮT" end
+end)
+
+GhostBtnObj.MouseButton1Click:Connect(function()
+    ghostActive = not ghostActive
+    local char = game.Players.LocalPlayer.Character
+    if ghostActive then
+        char.Archivable = true; ghostModel = char:Clone(); ghostModel.Parent = workspace
+        for _, v in pairs(ghostModel:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; v.Transparency = 0.5 end end
+        ghostPos = char.HumanoidRootPart.Position; lockedPos = char.HumanoidRootPart.CFrame
+        workspace.CurrentCamera.CameraSubject = ghostModel.Humanoid; GhostBtnObj.Text = "GHOST: BẬT"
+    else
+        if ghostModel then ghostModel:Destroy() end
+        workspace.CurrentCamera.CameraSubject = char.Humanoid; GhostBtnObj.Text = "GHOST: TẮT"
+    end
+end)
+
+AirWalkBtnObj.MouseButton1Click:Connect(function()
+    airWalkActive = not airWalkActive
+    if airWalkActive then
+        airWalkPart = Instance.new("Part", workspace); airWalkPart.Size = Vector3.new(15, 1, 15)
+        airWalkPart.Anchored = true; airWalkPart.Transparency = 0.6; airWalkPart.CanCollide = true; airWalkPart.Color = Color3.new(0,1,1)
+        AirWalkBtnObj.Text = "AIRWALK: BẬT"
+    else
+        if airWalkPart then airWalkPart:Destroy() end; AirWalkBtnObj.Text = "AIRWALK: TẮT"
+    end
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
