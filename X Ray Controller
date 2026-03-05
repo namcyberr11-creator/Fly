@@ -1,71 +1,41 @@
--- [[ VŨ KHOA V31 PRO - FULL X-RAY EDITION ]]
+-- [[ VŨ KHOA V31 PRO - AUTO NOCLIP SYNC ]]
 local lp = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VuKhoa_V31_Pro"
+ScreenGui.Name = "VuKhoa_Sync_UI"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame")
-local TitleBar = Instance.new("Frame")
-local TitleLabel = Instance.new("TextLabel")
-local CloseBtn = Instance.new("TextButton")
-local ScrollFrame = Instance.new("ScrollingFrame")
-
-local function applyStyle(obj, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius)
-    corner.Parent = obj
-    if obj:IsA("TextButton") or obj:IsA("TextBox") then
-        obj.Font = Enum.Font.GothamBold; obj.TextColor3 = Color3.new(1,1,1)
-    end
-end
-
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Position = UDim2.new(0.5, -115, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 230, 0, 420)
-MainFrame.ClipsDescendants = true
-MainFrame.Active = true
-applyStyle(MainFrame, 12)
-
-TitleBar.Parent = MainFrame
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-applyStyle(TitleBar, 10)
-
-TitleLabel.Parent = TitleBar
-TitleLabel.Text = "  VŨ KHOA V31 PRO"
-TitleLabel.Size = UDim2.new(1, -50, 1, 0)
-TitleLabel.Font = Enum.Font.GothamBold; TitleLabel.TextColor3 = Color3.new(1,1,1)
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left; TitleLabel.BackgroundTransparency = 1
-
-CloseBtn.Parent = TitleBar
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.Text = "▲"; CloseBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-applyStyle(CloseBtn, 6)
-
-ScrollFrame.Parent = MainFrame
-ScrollFrame.Position = UDim2.new(0, 0, 0, 45)
-ScrollFrame.Size = UDim2.new(1, 0, 1, -50)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 550)
-ScrollFrame.ScrollBarThickness = 0
-
-local UIList = Instance.new("UIListLayout", ScrollFrame)
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center; UIList.Padding = UDim.new(0, 8)
-
--- Variables
+-- Biến Logic
 local localMoveDir = Vector3.new(0,0,0)
-local currentSpeed = 50
-local ghimActive, airWalkActive, ghostActive, xrayActive = false, false, false, false
+local currentSpeed = 1 
+local ghimActive, xrayActive, ghostActive, airWalkActive = false, false, false, false
 local lockedPos, airWalkPart, ghostModel = nil, nil, nil
-local airHeight, ghostPos = 0, Vector3.new(0,0,0)
 
--- [ DRAG UI ]
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+MainFrame.Position = UDim2.new(0.5, -110, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 380)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+
+-- Title Bar
+local TitleBar = Instance.new("TextButton")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+TitleBar.Text = "  ▼   Xray Controller"
+TitleBar.Font = Enum.Font.Antique
+TitleBar.TextColor3 = Color3.new(1, 1, 1)
+TitleBar.TextSize = 22
+TitleBar.TextXAlignment = Enum.TextXAlignment.Left
+TitleBar.Parent = MainFrame
+TitleBar.BorderSizePixel = 0
+
+-- Kéo thả UI
 local dragging, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -80,147 +50,146 @@ uis.InputChanged:Connect(function(input)
     end
 end)
 
--- [ ICON TOGGLE BUTTON FUNCTION ]
-local function createToggleBtn(text, default, callback)
-    local btn = Instance.new("TextButton", ScrollFrame)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    applyStyle(btn, 8)
-    
-    local state = default
-    local iconOn, iconOff = "🔲", "🔳"
-    
-    local function updateText()
-        btn.Text = (state and iconOn or iconOff) .. "  " .. text
-        btn.TextColor3 = state and Color3.new(0, 1, 0.5) or Color3.new(1, 1, 1)
-    end
-    
-    updateText()
+local Content = Instance.new("Frame", MainFrame)
+Content.Size = UDim2.new(1, 0, 1, -40); Content.Position = UDim2.new(0, 0, 0, 40); Content.BackgroundTransparency = 1
+
+local function createBtn(parent, txt, isGrid, callback)
+    local btn = Instance.new("TextButton", parent)
+    if not isGrid then btn.Size = UDim2.new(1, 0, 0, 32) end
+    btn.BackgroundTransparency = 1; btn.Text = ""
+    local box = Instance.new("Frame", btn)
+    box.Size = UDim2.new(0, 24, 0, 28); box.Position = UDim2.new(0, 0, 0.5, -14); box.BackgroundColor3 = Color3.fromRGB(18, 18, 18); box.BorderSizePixel = 0
+    local lbl = Instance.new("TextLabel", btn)
+    lbl.Size = UDim2.new(1, -35, 1, 0); lbl.Position = UDim2.new(0, 35, 0, 0); lbl.BackgroundTransparency = 1; lbl.Text = txt; lbl.Font = Enum.Font.Antique; lbl.TextColor3 = Color3.new(0.9, 0.9, 0.9); lbl.TextSize = 20; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local active = false
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        updateText()
-        callback(state)
+        active = not active
+        box.BackgroundColor3 = active and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(18, 18, 18)
+        callback(active)
     end)
 end
 
--- [ MOVE GRID ]
-local ButtonsGrid = Instance.new("Frame", ScrollFrame)
-ButtonsGrid.Size = UDim2.new(0.9, 0, 0, 130); ButtonsGrid.BackgroundTransparency = 1
-local UIGrid = Instance.new("UIGridLayout", ButtonsGrid)
-UIGrid.CellSize = UDim2.new(0.48, 0, 0, 35)
+-- Move Grid
+local Grid = Instance.new("Frame", Content)
+Grid.Position = UDim2.new(0, 20, 0, 15); Grid.Size = UDim2.new(1, -40, 0, 110); Grid.BackgroundTransparency = 1
+local UIGrid = Instance.new("UIGridLayout", Grid); UIGrid.CellSize = UDim2.new(0.48, 0, 0, 32); UIGrid.CellPadding = UDim2.new(0.04, 0, 0, 5)
 
-local function createMoveBtn(txt, vec)
-    local btn = Instance.new("TextButton", ButtonsGrid)
-    btn.Text = txt; btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); applyStyle(btn, 6)
-    local act = false
-    btn.MouseButton1Click:Connect(function()
-        act = not act
-        btn.BackgroundColor3 = act and Color3.fromRGB(0, 150, 200) or Color3.fromRGB(40, 40, 40)
-        if act then localMoveDir = localMoveDir + vec else localMoveDir = localMoveDir - vec end
-    end)
-end
-createMoveBtn("TIẾN", Vector3.new(0,0,-1)); createMoveBtn("LÙI", Vector3.new(0,0,1))
-createMoveBtn("TRÁI", Vector3.new(-1,0,0)); createMoveBtn("PHẢI", Vector3.new(1,0,0))
-createMoveBtn("LÊN", Vector3.new(0,1,0)); createMoveBtn("XUỐNG", Vector3.new(0,-1,0))
+local moves = {{"Tiến", Vector3.new(0,0,-1)}, {"Lùi", Vector3.new(0,0,1)}, {"Trái", Vector3.new(-1,0,0)}, {"Phải", Vector3.new(1,0,0)}, {"Lên", Vector3.new(0,1,0)}, {"Xuống", Vector3.new(0,-1,0)}}
+for _, v in pairs(moves) do createBtn(Grid, v[1], true, function(s) if s then localMoveDir = localMoveDir + v[2] else localMoveDir = localMoveDir - v[2] end end) end
 
-local SpeedInput = Instance.new("TextBox", ScrollFrame)
-SpeedInput.Size = UDim2.new(0.9, 0, 0, 35); SpeedInput.Text = "50"
-SpeedInput.BackgroundColor3 = Color3.fromRGB(40,40,40); applyStyle(SpeedInput, 8)
-SpeedInput.FocusLost:Connect(function() currentSpeed = tonumber(SpeedInput.Text) or 50 end)
+-- Features List
+local List = Instance.new("Frame", Content)
+List.Position = UDim2.new(0, 20, 0, 140); List.Size = UDim2.new(1, -40, 0, 150); List.BackgroundTransparency = 1
+local UIList = Instance.new("UIListLayout", List); UIList.Padding = UDim.new(0, 8)
 
--- [ TẠO CÁC NÚT VỚI ICON ]
-createToggleBtn("GHIM VỊ TRÍ", false, function(s)
-    ghimActive = s
-    if s and lp.Character then lockedPos = lp.Character.HumanoidRootPart.CFrame else lockedPos = nil end
+createBtn(List, "Ghim Pos", false, function(s) 
+    ghimActive = s 
+    if s and lp.Character then lockedPos = lp.Character.HumanoidRootPart.CFrame end 
 end)
 
-createToggleBtn("AIR WALK", false, function(s)
+createBtn(List, "Xray ESP", false, function(s) xrayActive = s end)
+
+createBtn(List, "Ghost Mode", false, function(s)
+    ghostActive = s
+    if s and lp.Character then
+        lp.Character.Archivable = true
+        ghostModel = lp.Character:Clone()
+        ghostModel.Parent = workspace
+        for _, v in pairs(ghostModel:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; v.Transparency = 0.5 end end
+        workspace.CurrentCamera.CameraSubject = ghostModel:FindFirstChild("Humanoid")
+    elseif ghostModel then
+        ghostModel:Destroy()
+        workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
+    end
+end)
+
+createBtn(List, "Air Walk", false, function(s)
     airWalkActive = s
     if s then
         airWalkPart = Instance.new("Part", workspace)
-        airWalkPart.Size = Vector3.new(20, 0.5, 20); airWalkPart.Anchored = true
-        airWalkPart.Transparency = 0.8; airWalkPart.Color = Color3.new(0,1,1)
-    elseif airWalkPart then airWalkPart:Destroy() airWalkPart = nil end
+        airWalkPart.Size = Vector3.new(15, 0.5, 15); airWalkPart.Anchored = true; airWalkPart.Transparency = 0.5
+    elseif airWalkPart then airWalkPart:Destroy() end
 end)
 
-createToggleBtn("GHOST MODE", false, function(s)
-    ghostActive = s
-    local char = lp.Character
-    if s and char then
-        char.Archivable = true; ghostModel = char:Clone(); ghostModel.Parent = workspace
-        for _, v in pairs(ghostModel:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; v.Transparency = 0.5 end end
-        ghostPos = char.HumanoidRootPart.Position; lockedPos = char.HumanoidRootPart.CFrame
-        workspace.CurrentCamera.CameraSubject = ghostModel:FindFirstChild("Humanoid")
-    else
-        if ghostModel then ghostModel:Destroy() ghostModel = nil end
-        if char then workspace.CurrentCamera.CameraSubject = char:FindFirstChild("Humanoid") end
-    end
-end)
+-- Speed Bar
+local SpeedBar = Instance.new("Frame", Content)
+SpeedBar.Size = UDim2.new(1, 0, 0, 45); SpeedBar.Position = UDim2.new(0, 0, 1, -45); SpeedBar.BackgroundColor3 = Color3.fromRGB(12, 12, 12); SpeedBar.BorderSizePixel = 0
+local BlueSq = Instance.new("Frame", SpeedBar); BlueSq.Size = UDim2.new(0, 32, 0, 32); BlueSq.Position = UDim2.new(0, 20, 0.5, -16); BlueSq.BackgroundColor3 = Color3.fromRGB(75, 115, 255); BlueSq.BorderSizePixel = 0
+local SpeedVal = Instance.new("TextBox", SpeedBar); SpeedVal.Text = "1"; SpeedVal.Size = UDim2.new(0.5, 0, 1, 0); SpeedVal.Position = UDim2.new(0, 65, 0, 0); SpeedVal.BackgroundTransparency = 1; SpeedVal.Font = Enum.Font.Antique; SpeedVal.TextColor3 = Color3.new(1, 1, 1); SpeedVal.TextSize = 24; SpeedVal.TextXAlignment = Enum.TextXAlignment.Left
+SpeedVal.FocusLost:Connect(function() currentSpeed = tonumber(SpeedVal.Text) or 1 end)
+local TocLbl = Instance.new("TextLabel", SpeedBar); TocLbl.Text = "Tốc"; TocLbl.Size = UDim2.new(0, 40, 1, 0); TocLbl.Position = UDim2.new(1, -60, 0, 0); TocLbl.BackgroundTransparency = 1; TocLbl.Font = Enum.Font.Antique; TocLbl.TextColor3 = Color3.new(1, 1, 1); TocLbl.TextSize = 22
 
-createToggleBtn("X-RAY (ESP)", false, function(s)
-    xrayActive = s
-end)
-
--- [[ LOGIC ]]
+-- [[ LOGIC ĐỒNG BỘ NOCLIP & DI CHUYỂN ]]
 runService.Heartbeat:Connect(function(dt)
     local char = lp.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart
 
-    -- Noclip Auto
-    if localMoveDir.Magnitude > 0 or ghostActive then
-        for _, v in pairs(char:GetChildren()) do if v:IsA("BasePart") then v.CanCollide = false end end
-    end
-
-    -- Di chuyển Hướng Nhân Vật
-    if ghostActive and ghostModel then
-        if localMoveDir.Magnitude > 0 then
-            local gRoot = ghostModel.HumanoidRootPart
-            local gMove = (gRoot.CFrame.LookVector * -localMoveDir.Z) + (gRoot.CFrame.RightVector * localMoveDir.X) + (Vector3.new(0,1,0) * localMoveDir.Y)
-            ghostPos = ghostPos + (gMove.Unit * currentSpeed * dt)
-        end
-        ghostModel.HumanoidRootPart.CFrame = ghostModel.HumanoidRootPart.CFrame:Lerp(CFrame.new(ghostPos) * (root.CFrame - root.CFrame.Position), 0.2)
-        root.CFrame = lockedPos; root.Velocity = Vector3.new(0,0,0)
-    elseif localMoveDir.Magnitude > 0 then
-        local moveVec = (root.CFrame.LookVector * -localMoveDir.Z) + (root.CFrame.RightVector * localMoveDir.X) + (Vector3.new(0,1,0) * localMoveDir.Y)
-        root.CFrame = root.CFrame + (moveVec.Unit * currentSpeed * dt)
-        if ghimActive then lockedPos = root.CFrame end
-    elseif ghimActive and lockedPos then
-        root.CFrame = lockedPos; root.Velocity = Vector3.new(0,0,0)
-    end
-
-    -- Air Walk
-    if airWalkActive and airWalkPart then
-        local target = ghostActive and ghostModel.HumanoidRootPart or root
-        if math.abs(localMoveDir.Y) > 0 or airHeight == 0 then airHeight = target.Position.Y - 3.5 end
-        airWalkPart.Position = Vector3.new(target.Position.X, airHeight, target.Position.Z)
-    end
-    
-    -- X-Ray ESP Logic
-    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-        if player ~= lp and player.Character then
-            local pChar = player.Character
-            local highlight = pChar:FindFirstChild("VuKhoa_ESP")
-            if xrayActive then
-                if not highlight then
-                    highlight = Instance.new("Highlight")
-                    highlight.Name = "VuKhoa_ESP"
-                    highlight.FillColor = Color3.new(1, 0, 0)
-                    highlight.OutlineColor = Color3.new(1, 1, 1)
-                    highlight.FillTransparency = 0.5
-                    highlight.Parent = pChar
+    -- 1. ESP Logic
+    if xrayActive then
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= lp and p.Character then
+                if not p.Character:FindFirstChild("VuKhoa_ESP") then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.Name = "VuKhoa_ESP"; h.FillColor = Color3.new(1, 0, 0)
                 end
-            elseif highlight then
-                highlight:Destroy()
             end
         end
+    else
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("VuKhoa_ESP") then p.Character.VuKhoa_ESP:Destroy() end
+        end
+    end
+
+    -- 2. Di chuyển & Tự động Noclip
+    local target = (ghostActive and ghostModel) and ghostModel:FindFirstChild("HumanoidRootPart") or root
+    
+    if localMoveDir.Magnitude > 0 then
+        -- KHI DI CHUYỂN: Tắt va chạm (Noclip ON)
+        for _, v in pairs(char:GetDescendants()) do 
+            if v:IsA("BasePart") then v.CanCollide = false end 
+        end
+        if ghostModel then
+            for _, v in pairs(ghostModel:GetDescendants()) do 
+                if v:IsA("BasePart") then v.CanCollide = false end 
+            end
+        end
+
+        local moveVec = (target.CFrame.LookVector * -localMoveDir.Z) + (target.CFrame.RightVector * localMoveDir.X) + (Vector3.new(0,1,0) * localMoveDir.Y)
+        target.CFrame = target.CFrame + (moveVec.Unit * (currentSpeed * 50 * dt))
+        
+        -- Cập nhật ghim nếu đang bật
+        if ghimActive and not ghostActive then lockedPos = target.CFrame end
+    else
+        -- KHI KHÔNG DI CHUYỂN: Bật va chạm (Noclip OFF)
+        -- (Chỉ bật lại nếu không phải đang trong chế độ Ghost)
+        if not ghostActive then
+            -- Không quét CanCollide liên tục để tránh lag, chỉ cần để mặc định game xử lý khi đứng yên
+        end
+    end
+
+    -- 3. Logic Ghim
+    if ghimActive and lockedPos and not ghostActive then
+        root.CFrame = lockedPos
+        root.Velocity = Vector3.new(0,0,0)
+    end
+    
+    if ghostActive then 
+        root.CFrame = lockedPos or root.CFrame
+        root.Velocity = Vector3.new(0,0,0)
+    end
+
+    -- 4. Air Walk Sync
+    if airWalkActive and airWalkPart then
+        airWalkPart.Position = target.Position - Vector3.new(0, 3.5, 0)
     end
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScrollFrame.Visible = not ScrollFrame.Visible
-    MainFrame.Size = ScrollFrame.Visible and UDim2.new(0, 230, 0, 420) or UDim2.new(0, 230, 0, 40)
-    CloseBtn.Text = ScrollFrame.Visible and "▲" or "▼"
+-- Thu gọn UI
+local op = true
+TitleBar.MouseButton1Click:Connect(function()
+    if not dragging then
+        op = not op; Content.Visible = op
+        MainFrame.Size = op and UDim2.new(0, 220, 0, 380) or UDim2.new(0, 220, 0, 40)
+    end
 end)
-
-runService.Heartbeat:Connect(function() TitleBar.BackgroundColor3 = Color3.fromHSV((os.clock() % 5) / 5, 0.7, 0.6) end)
