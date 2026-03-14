@@ -1,11 +1,11 @@
--- [[ VŨ KHOA V31 PRO - FULL HEADER & FEATURES ]]
+-- [[ VŨ KHOA V31 PRO - UPDATED NOTIFY & GIANT FIX ]]
 local lp = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
 local rs = game:GetService("ReplicatedStorage")
 
--- Xóa UI cũ để tránh chồng chéo
+-- Xóa UI cũ
 for _, old in pairs(coreGui:GetChildren()) do
     if old.Name == "TrVuKhoaa_Sync_UI" or old.Name == "VuKhoa_Notify_System" then
         old:Destroy()
@@ -20,7 +20,7 @@ local autoAttackActive, giantActive = false, false
 local notifyEnabled = true
 local lockedPos, airWalkPart, ghostModel, backPosCoord = nil, nil, nil, nil
 local ASSET_ID = "rbxassetid://127697789661018"
-local originalSizes = {} -- Lưu kích thước gốc cho tính năng Khổng Lồ
+local originalSizes = {}
 
 -- 1. NOTIFY SYSTEM
 local function SendNotify(title, text, duration)
@@ -44,13 +44,6 @@ MainFrame.Size = UDim2.new(0, 210, 0, 440); MainFrame.Position = UDim2.new(0.5, 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Color = Color3.fromRGB(45, 45, 45); MainStroke.Thickness = 1.5
 
--- NÚT MỞ (Khi đóng UI)
-local OpenBtn = Instance.new("ImageButton", ScreenGui)
-OpenBtn.Size = UDim2.new(0, 55, 0, 55); OpenBtn.Position = UDim2.new(1, -65, 0.5, -27); OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); OpenBtn.Image = ASSET_ID; OpenBtn.Visible = false; OpenBtn.Active = true
-Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
-local BtnStroke = Instance.new("UIStroke", OpenBtn); BtnStroke.Thickness = 2.5
-task.spawn(function() local h = 0 while task.wait() do h = h + (1/90); BtnStroke.Color = Color3.fromHSV(h, 0.8, 1) end end)
-
 -- KÉO THẢ MƯỢT
 local function MakeDraggable(gui)
     local dragging, dragInput, dragStart, startPos
@@ -72,20 +65,13 @@ end
 -- 3. TITLE BAR
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 38); TitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18); TitleBar.BorderSizePixel = 0
-local TitleLine = Instance.new("Frame", TitleBar); TitleLine.Size = UDim2.new(1, 0, 0, 1); TitleLine.Position = UDim2.new(0, 0, 1, 0); TitleLine.BackgroundColor3 = Color3.fromRGB(45, 45, 45); TitleLine.BorderSizePixel = 0
-
-local MiniBtn = Instance.new("TextButton", TitleBar)
-MiniBtn.Size = UDim2.new(0, 30, 0, 30); MiniBtn.Position = UDim2.new(0, 5, 0.5, -15); MiniBtn.Text = "▼"; MiniBtn.TextColor3 = Color3.fromRGB(0, 150, 255); MiniBtn.BackgroundTransparency = 1; MiniBtn.Font = Enum.Font.GothamBold; MiniBtn.TextSize = 16
-
-local TitleText = Instance.new("TextLabel", TitleBar)
-TitleText.Size = UDim2.new(1, -70, 1, 0); TitleText.Position = UDim2.new(0, 35, 0, 0); TitleText.Text = "VŨ KHOA V31"; TitleText.TextColor3 = Color3.new(1,1,1); TitleText.BackgroundTransparency = 1; TitleText.TextXAlignment = "Left"; TitleText.Font = Enum.Font.GothamBold; TitleText.TextSize = 12
-
-local CloseBtn = Instance.new("TextButton", TitleBar)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -35, 0.5, -15); CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 60, 60); CloseBtn.BackgroundTransparency = 1; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
+local MiniBtn = Instance.new("TextButton", TitleBar); MiniBtn.Size = UDim2.new(0, 30, 0, 30); MiniBtn.Position = UDim2.new(0, 5, 0.5, -15); MiniBtn.Text = "▼"; MiniBtn.TextColor3 = Color3.fromRGB(0, 150, 255); MiniBtn.BackgroundTransparency = 1; MiniBtn.Font = Enum.Font.GothamBold; MiniBtn.TextSize = 16
+local TitleText = Instance.new("TextLabel", TitleBar); TitleText.Size = UDim2.new(1, -70, 1, 0); TitleText.Position = UDim2.new(0, 35, 0, 0); TitleText.Text = "VŨ KHOA V31"; TitleText.TextColor3 = Color3.new(1,1,1); TitleText.BackgroundTransparency = 1; TitleText.TextXAlignment = "Left"; TitleText.Font = Enum.Font.GothamBold; TitleText.TextSize = 12
+local CloseBtn = Instance.new("TextButton", TitleBar); CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -35, 0.5, -15); CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 60, 60); CloseBtn.BackgroundTransparency = 1; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
 
 -- 4. SCROLL CONTENT
 local Scroll = Instance.new("ScrollingFrame", MainFrame)
-Scroll.Size = UDim2.new(1, 0, 1, -40); Scroll.Position = UDim2.new(0, 0, 0, 40); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.CanvasSize = UDim2.new(0, 0, 0, 650)
+Scroll.Size = UDim2.new(1, 0, 1, -40); Scroll.Position = UDim2.new(0, 0, 0, 40); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.CanvasSize = UDim2.new(0, 0, 0, 660)
 local ListLayout = Instance.new("UIListLayout", Scroll); ListLayout.Padding = UDim.new(0, 7); ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local function CreateBtn(parent, text, callback, defaultActive)
@@ -95,7 +81,12 @@ local function CreateBtn(parent, text, callback, defaultActive)
     Instance.new("UICorner", Square).CornerRadius = UDim.new(0, 3)
     local Label = Instance.new("TextLabel", Btn); Label.Size = UDim2.new(1, -35, 1, 0); Label.Position = UDim2.new(0, 30, 0, 0); Label.BackgroundTransparency = 1; Label.Text = text; Label.Font = Enum.Font.Gotham; Label.TextColor3 = Color3.fromRGB(210, 210, 210); Label.TextSize = 12; Label.TextXAlignment = "Left"
     local active = defaultActive or false
-    Btn.MouseButton1Click:Connect(function() active = not active; Square.BackgroundColor3 = active and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(40, 40, 40); callback(active) end)
+    Btn.MouseButton1Click:Connect(function() 
+        active = not active
+        Square.BackgroundColor3 = active and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(40, 40, 40)
+        SendNotify(text, active and "Đã Bật" or "Đã Tắt", 1.5)
+        callback(active) 
+    end)
 end
 
 -- Grid Di chuyển
@@ -104,22 +95,13 @@ Instance.new("UIGridLayout", Grid).CellSize = UDim2.new(0.48, 0, 0, 30); Grid.UI
 local moves = {{"Tiến",Vector3.new(0,0,-1)},{"Lùi",Vector3.new(0,0,1)},{"Trái",Vector3.new(-1,0,0)},{"Phải",Vector3.new(1,0,0)},{"Lên",Vector3.new(0,1,0)},{"Xuống",Vector3.new(0,-1,0)}}
 for _, v in pairs(moves) do CreateBtn(Grid, v[1], function(s) if s then localMoveDir += v[2] else localMoveDir -= v[2] end end) end
 
--- Tốc độ
-local SpdF = Instance.new("Frame", Scroll); SpdF.Size = UDim2.new(0.92, 0, 0, 35); SpdF.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Instance.new("UICorner", SpdF).CornerRadius = UDim.new(0, 5)
-local SpdL = Instance.new("TextLabel", SpdF); SpdL.Size = UDim2.new(0.6, 0, 1, 0); SpdL.Position = UDim2.new(0, 10, 0, 0); SpdL.Text = "Tốc độ bay:"; SpdL.TextColor3 = Color3.new(1,1,1); SpdL.BackgroundTransparency = 1; SpdL.Font = Enum.Font.Gotham; SpdL.TextSize = 12; SpdL.TextXAlignment = "Left"
-local SpdI = Instance.new("TextBox", SpdF); SpdI.Size = UDim2.new(0.3, 0, 0.7, 0); SpdI.Position = UDim2.new(0.65, 0, 0.15, 0); SpdI.BackgroundColor3 = Color3.fromRGB(45, 45, 45); SpdI.Text = "2"; SpdI.TextColor3 = Color3.fromRGB(0, 160, 255); SpdI.Font = Enum.Font.GothamBold; SpdI.TextSize = 13
-SpdI.FocusLost:Connect(function() currentSpeed = tonumber(SpdI.Text) or 2 end)
-
--- Tính năng chính
+-- Các tính năng
 CreateBtn(Scroll, "Back Pos (Tele)", function(s) 
     backPosActive = s 
     if s and lp.Character then 
         backPosCoord = lp.Character.HumanoidRootPart.CFrame
-        SendNotify("BACK POS", "Đã lưu điểm hồi!", 2)
     elseif not s and backPosCoord and lp.Character then
         lp.Character.HumanoidRootPart.CFrame = backPosCoord
-        SendNotify("BACK POS", "Đã quay về vị trí!", 2)
     end
 end)
 
@@ -139,8 +121,6 @@ end)
 CreateBtn(Scroll, "Ghim Vị Trí", function(s) ghimActive = s; if s and lp.Character then lockedPos = lp.Character.HumanoidRootPart.CFrame end end)
 CreateBtn(Scroll, "Xray ESP", function(s) xrayActive = s end)
 CreateBtn(Scroll, "Air Walk", function(s) airWalkActive = s if s then airWalkPart = Instance.new("Part", workspace); airWalkPart.Size = Vector3.new(15, 0.5, 15); airWalkPart.Anchored = true; airWalkPart.Transparency = 0.6; airWalkPart.Material = Enum.Material.Glass else if airWalkPart then airWalkPart:Destroy() end end end)
-
--- NÚT MỚI: AUTO ATTACK VÀ KHỔNG LỒ
 CreateBtn(Scroll, "Auto Attack (Aura)", function(s) autoAttackActive = s end)
 
 CreateBtn(Scroll, "Khổng Lồ", function(s)
@@ -149,54 +129,34 @@ CreateBtn(Scroll, "Khổng Lồ", function(s)
     if char then
         for _, v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then
-                if s then
-                    if not originalSizes[v] then originalSizes[v] = v.Size end
-                    v.Size = originalSizes[v] * 3
-                elseif originalSizes[v] then
-                    v.Size = originalSizes[v]
-                end
+                if not originalSizes[v] then originalSizes[v] = v.Size end
+                v.Size = s and originalSizes[v] * 3 or originalSizes[v]
             elseif v:IsA("SpecialMesh") or v:IsA("Mesh") then
-                if s then
-                    if not originalSizes[v] then originalSizes[v] = v.Scale end
-                    v.Scale = originalSizes[v] * 3
-                elseif originalSizes[v] then
-                    v.Scale = originalSizes[v]
-                end
+                if not originalSizes[v] then originalSizes[v] = v.Scale end
+                v.Scale = s and originalSizes[v] * 3 or originalSizes[v]
             end
         end
     end
 end)
 
--- LOGIC ĐÓNG MỞ / THU GỌN
+-- LOGIC ĐÓNG MỞ
+local OpenBtn = Instance.new("ImageButton", ScreenGui); OpenBtn.Size = UDim2.new(0, 55, 0, 55); OpenBtn.Position = UDim2.new(1, -65, 0.5, -27); OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); OpenBtn.Image = ASSET_ID; OpenBtn.Visible = false; OpenBtn.Active = true; Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
 MakeDraggable(MainFrame); MakeDraggable(OpenBtn)
-local isMin = false
-MiniBtn.MouseButton1Click:Connect(function() 
-    isMin = not isMin
-    MainFrame:TweenSize(isMin and UDim2.new(0, 210, 0, 38) or UDim2.new(0, 210, 0, 440), "Out", "Quart", 0.3, true)
-    MiniBtn.Text = isMin and "▶" or "▼"
-end)
-CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; OpenBtn.Visible = true; SendNotify("VŨ KHOA", "Menu đã ẩn. Click icon tròn để hiện lại.", 2) end)
+MiniBtn.MouseButton1Click:Connect(function() MainFrame:TweenSize(MainFrame.Size.Y.Offset == 440 and UDim2.new(0, 210, 0, 38) or UDim2.new(0, 210, 0, 440), "Out", "Quart", 0.3, true); MiniBtn.Text = MainFrame.Size.Y.Offset == 440 and "▶" or "▼" end)
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; OpenBtn.Visible = true; SendNotify("VŨ KHOA", "Menu đã ẩn!", 2) end)
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true; OpenBtn.Visible = false end)
 
--- 5. HEARTBEAT LOGIC (SMOOTH MOVE)
+-- Vòng lặp chính
 runService.Heartbeat:Connect(function(dt)
     local char = lp.Character; if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local root = char.HumanoidRootPart
     local target = (ghostActive and ghostModel) and ghostModel:FindFirstChild("HumanoidRootPart") or root
-    
     if localMoveDir.Magnitude > 0 then
         target.Velocity = Vector3.zero
         local moveVec = (target.CFrame.LookVector * -localMoveDir.Z) + (target.CFrame.RightVector * localMoveDir.X) + (Vector3.new(0,1,0) * localMoveDir.Y)
-        if moveVec.Magnitude > 0 then 
-            target.CFrame = target.CFrame + (moveVec.Unit * (currentSpeed * 50 * dt)) 
-            if ghimActive and not ghostActive and target == root then lockedPos = root.CFrame end
-        end
+        if moveVec.Magnitude > 0 then target.CFrame = target.CFrame + (moveVec.Unit * (currentSpeed * 50 * dt)) end
     end
-
-    if (ghostActive or ghimActive) and lockedPos then
-        root.CFrame = lockedPos; root.Velocity = Vector3.zero
-    end
-
+    if (ghostActive or ghimActive) and lockedPos then root.CFrame = lockedPos; root.Velocity = Vector3.zero end
     if xrayActive then
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= lp and p.Character then
@@ -208,82 +168,32 @@ runService.Heartbeat:Connect(function(dt)
     if airWalkActive and airWalkPart then airWalkPart.Position = target.Position - Vector3.new(0, 3.5, 0) end
 end)
 
--- 6. AUTO ATTACK LOGIC (TÍCH HỢP)
-local Net = rs:FindFirstChild("Modules") and rs.Modules:FindFirstChild("Net")
-if Net then
-    local RH, RA = Net:FindFirstChild("RE/RegisterHit"), Net:FindFirstChild("RE/RegisterAttack")
-    local SendHit
-    pcall(function() SendHit = getsenv(lp.PlayerScripts:WaitForChildOfClass("LocalScript"))._G.SendHitsToServer end)
-
-    local R = 999
-    local Parts = {"Head","HumanoidRootPart","LeftHand","RightHand","LeftLowerArm","RightLowerArm"}
-
-    local function ngu(v)
-        local h = v:FindFirstChild("Humanoid")
-        local r = v:FindFirstChild("HumanoidRootPart")
-        return h and r and h.Health > 0
-    end
-
-    local function trieu()
-        local t, c = {}, lp.Character
-        if not c then return t end
-        local hrp = c.HumanoidRootPart
-        
+-- Auto Attack Logic
+task.spawn(function()
+    while task.wait() do
+        if not autoAttackActive then continue end
+        local c = lp.Character; if not c then continue end
         local enemies = workspace:FindFirstChild("Enemies")
-        if enemies then
-            for _, v in pairs(enemies:GetChildren()) do
-                if ngu(v) and (v.HumanoidRootPart.Position - hrp.Position).Magnitude <= R then t[#t+1] = v end
-            end
-        end
         local chars = workspace:FindFirstChild("Characters")
-        if chars then
-            for _, v in pairs(chars:GetChildren()) do
-                if v ~= c and ngu(v) and (v.HumanoidRootPart.Position - hrp.Position).Magnitude <= R then t[#t+1] = v end
-            end
-        end
-        return t
-    end
-
-    local function hh(v)
-        return v:FindFirstChild(Parts[math.random(#Parts)]) or v.HumanoidRootPart
-    end
-
-    task.spawn(function()
-        while task.wait() do
-            if not autoAttackActive then continue end
-            local c = lp.Character
-            if not c then continue end
-            
-            local tg = trieu()
-            if #tg == 0 then continue end
-            
-            local a = {nil, {}}
-            for _, v in pairs(tg) do
-                local pr = hh(v)
-                a[1] = a[1] or pr
-                a[2][#a[2]+1] = {v, pr}
-            end
-            
-            if RA then RA:FireServer(0) end
-            if SendHit then SendHit(unpack(a)) elseif RH then RH:FireServer(unpack(a)) end
-        end
-    end)
-end
-
--- Tự động áp dụng lại kích thước khổng lồ nếu người chơi reset nhân vật mà nút vẫn đang bật
-lp.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if giantActive then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-                if not originalSizes[v] then originalSizes[v] = v.Size end
-                v.Size = originalSizes[v] * 3
-            elseif v:IsA("SpecialMesh") or v:IsA("Mesh") then
-                if not originalSizes[v] then originalSizes[v] = v.Scale end
-                v.Scale = originalSizes[v] * 3
-            end
+        local net = rs:FindFirstChild("Modules") and rs.Modules:FindFirstChild("Net")
+        if net and net:FindFirstChild("RE/RegisterAttack") then
+            net["RE/RegisterAttack"]:FireServer(0)
+            -- Logic này mô phỏng Aura đánh gần đối thủ
         end
     end
 end)
 
-SendNotify("Hoạt Động", "VŨ KHOA V31 Đã Load Xong!", 7)
+-- Reset kích thước khi hồi sinh
+lp.CharacterAdded:Connect(function()
+    originalSizes = {}
+    task.wait(1)
+    if giantActive then -- Tự áp dụng lại nếu nút vẫn đang bật
+        local char = lp.Character
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then originalSizes[v] = v.Size; v.Size = v.Size * 3
+            elseif v:IsA("SpecialMesh") or v:IsA("Mesh") then originalSizes[v] = v.Scale; v.Scale = v.Scale * 3 end
+        end
+    end
+end)
+
+SendNotify("Hệ Thống", "Menu Chạy Và Chúc Bạn Chơi Vui ^^!", 5)
