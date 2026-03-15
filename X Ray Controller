@@ -1,28 +1,259 @@
--- [[ VŨ KHOA V31 PRO - NGUYÊN BẢN UI CŨ + FULL TÍNH NĂNG ]]
+-- [[ VŨ KHOA V31 PRO - RE-INTEGRATED + BYPASS TP ]]
 local lp = game:GetService("Players").LocalPlayer
 local runService = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
 local rs = game:GetService("ReplicatedStorage")
 
--- Xóa UI để tránh lỗi chồng menu
+-- Xóa UI cũ
 for _, old in pairs(coreGui:GetChildren()) do
     if old.Name == "TrVuKhoaa_Sync_UI" or old.Name == "VuKhoa_Notify_System" then
         old:Destroy()
     end
 end
 
--- Biến logic hệ thống
+-- Biến logic UI
 local localMoveDir = Vector3.new(0,0,0)
 local currentSpeed = 2 
 local ghimActive, xrayActive, ghostActive, airWalkActive, backPosActive = false, false, false, false, false
-local autoAttackActive, giantActive = false, false
+local m1AuraActive, fastAttackActive, giantActive = false, false, false
+local notifyEnabled = true
 local lockedPos, airWalkPart, ghostModel, backPosCoord = nil, nil, nil, nil
 local ASSET_ID = "rbxassetid://127697789661018"
 local originalSizes = {}
 
--- 1. HỆ THỐNG THÔNG BÁO
+-- [[================== BYPASS TP LOGIC ==================]]
+getgenv().PMT_MAX_STEP_DIST = getgenv().PMT_MAX_STEP_DIST or 9000
+getgenv().PMT_HOLD_TIME = getgenv().PMT_HOLD_TIME or 2
+getgenv().PMT_HOLD_STEP = getgenv().PMT_HOLD_STEP or 0.03
+getgenv().PMT_RESPAWN_TIMEOUT = getgenv().PMT_RESPAWN_TIMEOUT or 7
+getgenv().PMT_SKIP_IF_NEAR = getgenv().PMT_SKIP_IF_NEAR or 2000
+
+local IslandCF = {
+	["WindMill"] = CFrame.new(979.799, 16.516, 1429.047),
+	["Marine"] = CFrame.new(-2566.43, 6.856, 2045.256),
+	["Middle Town"] = CFrame.new(-690.331, 15.094, 1582.238),
+	["Jungle"] = CFrame.new(-1612.796, 36.852, 149.128),
+	["Pirate Village"] = CFrame.new(-1181.309, 4.751, 3803.546),
+	["Desert"] = CFrame.new(944.158, 20.92, 4373.3),
+	["Snow Island"] = CFrame.new(1347.807, 104.668, -1319.737),
+	["MarineFord"] = CFrame.new(-4914.821, 50.964, 4281.028),
+	["Colosseum"] = CFrame.new(-1427.62, 7.288, -2792.772),
+	["Sky Island 1"] = CFrame.new(-4869.103, 733.461, -2667.018),
+	["Sky Island 2"] = CFrame.new(-11.311, 29.277, 2771.522),
+	["Sky Island 3"] = CFrame.new(-483.734, 332.038, 595.327),
+	["Prison"] = CFrame.new(4875.33, 5.652, 734.85),
+	["Magma Village"] = CFrame.new(-5247.716, 12.884, 8504.969),
+	["Under Water Island"] = CFrame.new(61163.852, 11.68, 1819.784),
+	["Fountain City"] = CFrame.new(5127.128, 59.501, 4105.446),
+
+	["The Cafe"] = CFrame.new(-380.479, 77.22, 255.826),
+	["Frist Spot"] = CFrame.new(-9515.372, 164.006, 5786.061),
+	["Dark Area"] = CFrame.new(3780.03, 22.652, -3498.586),
+	["Flamingo Mansion"] = CFrame.new(-3032.764, 317.897, -10075.373),
+	["Flamingo Room"] = CFrame.new(2284.414, 15.152, 875.725),
+	["Green Zone"] = CFrame.new(-2448.53, 73.016, -3210.631),
+	["Factory"] = CFrame.new(424.127, 211.162, -427.54),
+	["Colossuim"] = CFrame.new(-1503.622, 219.796, 1369.31),
+	["Zombie Island"] = CFrame.new(-5622.033, 492.196, -781.786),
+	["Two Snow Mountain"] = CFrame.new(753.143, 408.236, -5274.615),
+	["Punk Hazard"] = CFrame.new(-6127.654, 15.952, -5040.286),
+	["Cursed Ship"] = CFrame.new(923.402, 125.057, 32885.875),
+	["Ice Castle"] = CFrame.new(6148.412, 294.387, -6741.117),
+	["Forgotten Island"] = CFrame.new(2681.274, 1682.809, -7190.985),
+
+	["Sea castle"] = CFrame.new(-5496.452, 313.809, -2857.703),
+	["Mini Sky Island"] = CFrame.new(-288.741, 49326.316, -35248.594),
+	["Great Tree"] = CFrame.new(2681.274, 1682.809, -7190.985),
+	["Port Town"] = CFrame.new(-226.751, 20.603, 5538.34),
+	["Hydra Island"] = CFrame.new(5291.249, 1005.443, 393.762),
+	["Mansion"] = CFrame.new(-12633.672, 459.521, -7425.463),
+	["Haunted Castle"] = CFrame.new(-9366.803, 141.366, 5443.941),
+	["Ice Cream Island"] = CFrame.new(-902.568, 79.932, -10988.848),
+	["Peanut Island"] = CFrame.new(-2062.748, 50.474, -10232.568),
+	["Cake Island"] = CFrame.new(-1884.775, 19.328, -11666.897),
+	["Cocoa Island"] = CFrame.new(87.943, 73.555, -12319.465),
+	["Candy Island"] = CFrame.new(-1014.424, 149.111, -14555.963),
+	["Tiki Outpost"] = CFrame.new(-16218.683, 9.086, 445.618),
+	["Dragon Dojo"] = CFrame.new(5743.319, 1206.91, 936.011),
+}
+
+local Alias = {["MiniSky"] = "Mini Sky Island", ["Colosseum"] = "Colosseum", ["Colossuim"] = "Colossuim"}
+
+local WorldIslands = {
+	World1 = {"WindMill","Marine","Middle Town","Jungle","Pirate Village","Desert","Snow Island","MarineFord","Colosseum","Sky Island 1","Sky Island 2","Sky Island 3","Prison","Magma Village","Under Water Island","Fountain City"},
+	World2 = {"The Cafe","Frist Spot","Dark Area","Flamingo Mansion","Flamingo Room","Green Zone","Factory","Colossuim","Zombie Island","Two Snow Mountain","Punk Hazard","Cursed Ship","Ice Castle","Forgotten Island"},
+	World3 = {"Sea castle","Mini Sky Island","Great Tree","Port Town","Hydra Island","Mansion","Haunted Castle","Ice Cream Island","Peanut Island","Cake Island","Cocoa Island","Candy Island","Tiki Outpost","Dragon Dojo"},
+}
+
+-- Tự động nhận diện Sea bằng PlaceId
+local function getWorldKey()
+    local placeId = game.PlaceId
+    if placeId == 2753915549 then return "World1"
+    elseif placeId == 4442272183 then return "World2"
+    elseif placeId == 7449423635 then return "World3"
+    end
+    return "World1"
+end
+
+local function normName(name)
+	if type(name) ~= "string" then return nil end
+	name = name:gsub("^%s+", ""):gsub("%s+$", "")
+	if Alias[name] then name = Alias[name] end
+	return name
+end
+
+local function dist(a, b) return (a - b).Magnitude end
+
+local function GetChar()
+	local c = lp.Character or lp.CharacterAdded:Wait()
+	local hrp = c:WaitForChild("HumanoidRootPart", 10)
+	local hum = c:FindFirstChildOfClass("Humanoid")
+	if not (hrp and hum) then return end
+	return c, hrp, hum
+end
+
+local function buildNodes()
+	local wk = getWorldKey()
+	local list = WorldIslands[wk] or {}
+	local nodes = {}
+	for _, n in ipairs(list) do
+		if IslandCF[n] then nodes[#nodes+1] = n end
+	end
+	return nodes
+end
+
+local function nearestIsland(pos, nodes)
+	local best, bestD
+	for _, n in ipairs(nodes) do
+		local d = dist(pos, IslandCF[n].Position)
+		if not bestD or d < bestD then bestD, best = d, n end
+	end
+	return best, bestD or math.huge
+end
+
+local function dijkstra(nodes, startName, goalName, maxStep)
+	local adj = {}
+	for _, a in ipairs(nodes) do adj[a] = {} end
+	for i=1,#nodes do
+		local ai = nodes[i]; local ap = IslandCF[ai].Position
+		for j=i+1,#nodes do
+			local bj = nodes[j]; local bp = IslandCF[bj].Position
+			local d = dist(ap, bp)
+			if d <= maxStep then adj[ai][bj] = d; adj[bj][ai] = d end
+		end
+	end
+	local distMap, prev, used = {}, {}, {}
+	for _, n in ipairs(nodes) do distMap[n] = math.huge end
+	distMap[startName] = 0
+	while true do
+		local u, best = nil, math.huge
+		for _, n in ipairs(nodes) do
+			if not used[n] and distMap[n] < best then best, u = distMap[n], n end
+		end
+		if not u or u == goalName then break end
+		used[u] = true
+		for v, w in pairs(adj[u]) do
+			if not used[v] then
+				local nd = distMap[u] + w
+				if nd < distMap[v] then distMap[v], prev[v] = nd, u end
+			end
+		end
+	end
+	if distMap[goalName] == math.huge then return nil end
+	local path, cur = {}, goalName
+	while cur do table.insert(path, 1, cur); cur = prev[cur] end
+	return path
+end
+
+local _STOP, _RUN = false, false
+
+local function HoldTPAndReset(pos)
+	local c, hrp, hum = GetChar()
+	if not c then return false end
+	local cf = CFrame.new(pos)
+	pcall(function() hrp.CFrame = cf; hrp.AssemblyLinearVelocity = Vector3.zero; hrp.AssemblyAngularVelocity = Vector3.zero end)
+	local t0 = os.clock()
+	while os.clock() - t0 < getgenv().PMT_HOLD_TIME do
+		if _STOP then break end
+		if not (hrp and hrp.Parent and hum and hum.Parent and hum.Health > 0) then break end
+		pcall(function() hrp.CFrame = cf; hrp.AssemblyLinearVelocity = Vector3.zero; hrp.AssemblyAngularVelocity = Vector3.zero end)
+		task.wait(getgenv().PMT_HOLD_STEP)
+	end
+	if _STOP then return false end
+	pcall(function() hum.Health = 0 end)
+	return true
+end
+
+local function WaitRespawn()
+	local t0 = os.clock()
+	while os.clock() - t0 < getgenv().PMT_RESPAWN_TIMEOUT do
+		if _STOP then return false end
+		local c = lp.Character; local hrp = c and c:FindFirstChild("HumanoidRootPart"); local hum = c and c:FindFirstChildOfClass("Humanoid")
+		if hrp and hum and hum.Health > 0 then return true end
+		task.wait(0.15)
+	end
+	return false
+end
+
+function PMT_FastHopTo(targetName)
+	targetName = normName(targetName)
+	if not (targetName and IslandCF[targetName]) then return false end
+	local nodes = buildNodes(); if #nodes == 0 then return false end
+	local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then if not WaitRespawn() then return false end hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") end
+	if not hrp then return false end
+	local startIsland = nearestIsland(hrp.Position, nodes)
+	local path = dijkstra(nodes, startIsland, targetName, getgenv().PMT_MAX_STEP_DIST)
+	if not path then return false end
+	_RUN, _STOP = true, false
+	for _, name in ipairs(path) do
+		if _STOP then break end
+		local pos = IslandCF[name].Position
+		local ch = lp.Character; local hrp2 = ch and ch:FindFirstChild("HumanoidRootPart")
+		if hrp2 and dist(hrp2.Position, pos) <= getgenv().PMT_SKIP_IF_NEAR then task.wait(0.1)
+		else
+			if not HoldTPAndReset(pos) or _STOP then break end
+			if not WaitRespawn() or _STOP then break end
+		end
+		task.wait(0.2)
+	end
+	_RUN = false; return not _STOP
+end
+
+function PMT_StopFastHop() _STOP = true end
+
+-- Vòng lặp kích hoạt TP
+task.spawn(function()
+	while task.wait(0.25) do
+		if _G.Tpfast and not _RUN then
+			local target = _G.Islandtp
+			if target and target ~= "" then
+				_STOP = false
+				PMT_FastHopTo(target)
+			end
+        elseif not _G.Tpfast and _RUN then
+            PMT_StopFastHop()
+		end
+	end
+end)
+
+local function BuildIslandOptions()
+	local wk = getWorldKey()
+	local list = WorldIslands[wk] or {}
+	local out, seen = {}, {}
+	for _, name in ipairs(list) do
+		if Alias and Alias[name] then name = Alias[name] end
+		if IslandCF[name] and not seen[name] then seen[name] = true; out[#out+1] = name end
+	end
+	table.sort(out)
+	return out
+end
+
+-- [[================== GIAO DIỆN CHÍNH ==================]]
+-- 1. NOTIFY SYSTEM
 local function SendNotify(title, text, duration)
+    if not notifyEnabled then return end
     local NotifyGui = coreGui:FindFirstChild("VuKhoa_Notify_System") or Instance.new("ScreenGui", coreGui)
     NotifyGui.Name = "VuKhoa_Notify_System"
     local Frame = Instance.new("Frame", NotifyGui)
@@ -35,14 +266,12 @@ local function SendNotify(title, text, duration)
     task.delay(duration or 3, function() if Frame then Frame:Destroy() end end)
 end
 
--- 2. KHỞI TẠO UI (GIỮ NGUYÊN CẤU TRÚC CŨ)
 local ScreenGui = Instance.new("ScreenGui", coreGui); ScreenGui.Name = "TrVuKhoaa_Sync_UI"
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 210, 0, 440); MainFrame.Position = UDim2.new(0.5, -105, 0.4, 0); MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12); MainFrame.Active = true; MainFrame.ClipsDescendants = true; MainFrame.BorderSizePixel = 0
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Color = Color3.fromRGB(45, 45, 45); MainStroke.Thickness = 1.5
 
--- Hàm kéo thả
 local function MakeDraggable(gui)
     local dragging, dragInput, dragStart, startPos
     gui.InputBegan:Connect(function(input)
@@ -59,21 +288,19 @@ local function MakeDraggable(gui)
         end
     end)
 end
-MakeDraggable(MainFrame)
 
--- Title Bar
+-- 3. TITLE BAR
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 38); TitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18); TitleBar.BorderSizePixel = 0
 local MiniBtn = Instance.new("TextButton", TitleBar); MiniBtn.Size = UDim2.new(0, 30, 0, 30); MiniBtn.Position = UDim2.new(0, 5, 0.5, -15); MiniBtn.Text = "▼"; MiniBtn.TextColor3 = Color3.fromRGB(0, 150, 255); MiniBtn.BackgroundTransparency = 1; MiniBtn.Font = Enum.Font.GothamBold; MiniBtn.TextSize = 16
 local TitleText = Instance.new("TextLabel", TitleBar); TitleText.Size = UDim2.new(1, -70, 1, 0); TitleText.Position = UDim2.new(0, 35, 0, 0); TitleText.Text = "VŨ KHOA V31 PRO"; TitleText.TextColor3 = Color3.new(1,1,1); TitleText.BackgroundTransparency = 1; TitleText.TextXAlignment = "Left"; TitleText.Font = Enum.Font.GothamBold; TitleText.TextSize = 12
 local CloseBtn = Instance.new("TextButton", TitleBar); CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -35, 0.5, -15); CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 60, 60); CloseBtn.BackgroundTransparency = 1; CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
 
--- Scroll Content
+-- 4. SCROLL CONTENT
 local Scroll = Instance.new("ScrollingFrame", MainFrame)
-Scroll.Size = UDim2.new(1, 0, 1, -40); Scroll.Position = UDim2.new(0, 0, 0, 40); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.CanvasSize = UDim2.new(0, 0, 0, 800)
+Scroll.Size = UDim2.new(1, 0, 1, -40); Scroll.Position = UDim2.new(0, 0, 0, 40); Scroll.BackgroundTransparency = 1; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.CanvasSize = UDim2.new(0, 0, 0, 850)
 local ListLayout = Instance.new("UIListLayout", Scroll); ListLayout.Padding = UDim.new(0, 7); ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Hàm tạo nút chuẩn UI cũ
 local function CreateBtn(parent, text, callback, defaultActive)
     local Btn = Instance.new("TextButton", parent); Btn.Size = UDim2.new(0.92, 0, 0, 32); Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Btn.Text = ""
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
@@ -89,50 +316,58 @@ local function CreateBtn(parent, text, callback, defaultActive)
     end)
 end
 
--- 3. CÁC MỤC TÍNH NĂNG (GIỮ ĐÚNG THỨ TỰ)
+-- Hàm tạo Dropdown (Đồng bộ UI gốc)
+local function CreateDropdown(parent, title, options, callback)
+    local Frame = Instance.new("Frame", parent)
+    Frame.Size = UDim2.new(0.92, 0, 0, 32); Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Frame.ClipsDescendants = true
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 5)
 
--- [MỤC NHẬP TỐC ĐỘ]
-local SpeedFrame = Instance.new("Frame", Scroll); SpeedFrame.Size = UDim2.new(0.92, 0, 0, 35); SpeedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); SpeedFrame.BorderSizePixel = 0; Instance.new("UICorner", SpeedFrame).CornerRadius = UDim.new(0, 5)
-local SpeedLabel = Instance.new("TextLabel", SpeedFrame); SpeedLabel.Size = UDim2.new(0.6, 0, 1, 0); SpeedLabel.Position = UDim2.new(0, 10, 0, 0); SpeedLabel.Text = "Tốc độ di chuyển:"; SpeedLabel.TextColor3 = Color3.new(1,1,1); SpeedLabel.BackgroundTransparency = 1; SpeedLabel.Font = Enum.Font.Gotham; SpeedLabel.TextSize = 11; SpeedLabel.TextXAlignment = "Left"
-local SpeedInput = Instance.new("TextBox", SpeedFrame); SpeedInput.Size = UDim2.new(0.3, 0, 0.7, 0); SpeedInput.Position = UDim2.new(0.65, 0, 0.15, 0); SpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40); SpeedInput.Text = tostring(currentSpeed); SpeedInput.TextColor3 = Color3.new(0, 255, 0); SpeedInput.Font = Enum.Font.GothamBold; SpeedInput.TextSize = 12; Instance.new("UICorner", SpeedInput).CornerRadius = UDim.new(0, 4)
-SpeedInput.FocusLost:Connect(function() local val = tonumber(SpeedInput.Text) if val then currentSpeed = val else SpeedInput.Text = tostring(currentSpeed) end end)
+    local Btn = Instance.new("TextButton", Frame)
+    Btn.Size = UDim2.new(1, 0, 0, 32); Btn.BackgroundTransparency = 1; Btn.Text = "  " .. title .. ": " .. (options[1] or "N/A"); Btn.Font = Enum.Font.Gotham; Btn.TextColor3 = Color3.fromRGB(210, 210, 210); Btn.TextSize = 12; Btn.TextXAlignment = "Left"
 
--- [GRID DI CHUYỂN]
+    local DropScroll = Instance.new("ScrollingFrame", Frame)
+    DropScroll.Size = UDim2.new(1, 0, 1, -32); DropScroll.Position = UDim2.new(0, 0, 0, 32); DropScroll.BackgroundTransparency = 1; DropScroll.BorderSizePixel = 0; DropScroll.ScrollBarThickness = 2
+    local DropLayout = Instance.new("UIListLayout", DropScroll)
+    
+    local isOpen = false
+    Btn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            Frame.Size = UDim2.new(0.92, 0, 0, 150)
+            DropScroll.CanvasSize = UDim2.new(0, 0, 0, #options * 25)
+        else
+            Frame.Size = UDim2.new(0.92, 0, 0, 32)
+        end
+    end)
+
+    for _, opt in ipairs(options) do
+        local OptBtn = Instance.new("TextButton", DropScroll)
+        OptBtn.Size = UDim2.new(1, 0, 0, 25); OptBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 28); OptBtn.Text = "  - " .. opt; OptBtn.Font = Enum.Font.Gotham; OptBtn.TextColor3 = Color3.new(1,1,1); OptBtn.TextSize = 11; OptBtn.TextXAlignment = "Left"
+        OptBtn.MouseButton1Click:Connect(function()
+            Btn.Text = "  " .. title .. ": " .. opt
+            isOpen = false
+            Frame.Size = UDim2.new(0.92, 0, 0, 32)
+            callback(opt)
+        end)
+    end
+    if options[1] then callback(options[1]) end
+end
+
+-- Grid Di chuyển
 local Grid = Instance.new("Frame", Scroll); Grid.Size = UDim2.new(0.9, 0, 0, 100); Grid.BackgroundTransparency = 1
 Instance.new("UIGridLayout", Grid).CellSize = UDim2.new(0.48, 0, 0, 30); Grid.UIGridLayout.CellPadding = UDim2.new(0.04, 0, 0, 5)
 local moves = {{"Tiến",Vector3.new(0,0,-1)},{"Lùi",Vector3.new(0,0,1)},{"Trái",Vector3.new(-1,0,0)},{"Phải",Vector3.new(1,0,0)},{"Lên",Vector3.new(0,1,0)},{"Xuống",Vector3.new(0,-1,0)}}
 for _, v in pairs(moves) do CreateBtn(Grid, v[1], function(s) if s then localMoveDir += v[2] else localMoveDir -= v[2] end end) end
 
--- [CÁC NÚT TÍNH NĂNG CHÍNH]
-CreateBtn(Scroll, "Auto Attack (Aura+Fast)", function(s) 
-    autoAttackActive = s 
-    if s then
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/AnhDzaiScript/Setting/refs/heads/main/FastMax.lua"))()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tamdznanatv/superattackm1/refs/heads/main/NaNaXtrieu.luau"))()
-        end)
-    end
+--- [[ TÍNH NĂNG CHÍNH ]] ---
+CreateBtn(Scroll, "M1 Aura", function(s) 
+    m1AuraActive = s 
+    if s then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/tamdznanatv/superattackm1/refs/heads/main/NaNaXtrieu.luau"))() end) end
 end)
 
-CreateBtn(Scroll, "Back Pos (Tele)", function(s) 
-    backPosActive = s 
-    if s and lp.Character then 
-        backPosCoord = lp.Character.HumanoidRootPart.CFrame
-    elseif not s and backPosCoord and lp.Character then
-        lp.Character.HumanoidRootPart.CFrame = backPosCoord
-    end
-end)
-
-CreateBtn(Scroll, "Ghost Mode", function(s) 
-    ghostActive = s 
-    if s and lp.Character then 
-        lockedPos = lp.Character.HumanoidRootPart.CFrame
-        ghostModel = lp.Character:Clone(); ghostModel.Name = "VuKhoa_Ghost"; ghostModel.Parent = workspace
-        for _, v in pairs(ghostModel:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; v.Transparency = 0.5 end end
-        workspace.CurrentCamera.CameraSubject = ghostModel:FindFirstChild("Humanoid")
-    elseif ghostModel then 
-        ghostModel:Destroy(); workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
-    end 
+CreateBtn(Scroll, "Fast Attack (Tốc độ)", function(s) 
+    fastAttackActive = s 
+    if s then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/AnhDzaiScript/Setting/refs/heads/main/FastMax.lua"))() end) end
 end)
 
 CreateBtn(Scroll, "Khổng Lồ", function(s)
@@ -151,36 +386,72 @@ CreateBtn(Scroll, "Khổng Lồ", function(s)
     end
 end)
 
-CreateBtn(Scroll, "Air Walk", function(s) airWalkActive = s if s then airWalkPart = Instance.new("Part", workspace); airWalkPart.Size = Vector3.new(15, 0.5, 15); airWalkPart.Anchored = true; airWalkPart.Transparency = 0.6; airWalkPart.Material = Enum.Material.Glass else if airWalkPart then airWalkPart:Destroy() end end end)
-CreateBtn(Scroll, "Xray ESP", function(s) xrayActive = s end)
-CreateBtn(Scroll, "Ghim Vị Trí", function(s) ghimActive = s; if s and lp.Character then lockedPos = lp.Character.HumanoidRootPart.CFrame end end)
-
--- Nút mở lại Menu
-local OpenBtn = Instance.new("ImageButton", ScreenGui); OpenBtn.Size = UDim2.new(0, 55, 0, 55); OpenBtn.Position = UDim2.new(1, -65, 0.5, -27); OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); OpenBtn.Image = ASSET_ID; OpenBtn.Visible = false; OpenBtn.Active = true; Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
-MakeDraggable(OpenBtn)
-
--- Xử lý đóng mở
-MiniBtn.MouseButton1Click:Connect(function() 
-    local isMini = MainFrame.Size.Y.Offset == 38
-    MainFrame:TweenSize(isMini and UDim2.new(0, 210, 0, 440) or UDim2.new(0, 210, 0, 38), "Out", "Quart", 0.3, true)
-    MiniBtn.Text = isMini and "▼" or "▶"
+CreateBtn(Scroll, "Ghost Mode", function(s) 
+    ghostActive = s 
+    if s and lp.Character then 
+        lockedPos = lp.Character.HumanoidRootPart.CFrame; lp.Character.Archivable = true
+        ghostModel = lp.Character:Clone(); ghostModel.Name = "VuKhoa_Ghost"; ghostModel.Parent = workspace
+        for _, v in pairs(ghostModel:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; v.Transparency = 0.5 end end
+        workspace.CurrentCamera.CameraSubject = ghostModel:FindFirstChild("Humanoid")
+    elseif ghostModel then 
+        ghostModel:Destroy(); workspace.CurrentCamera.CameraSubject = lp.Character.Humanoid
+    end 
 end)
-CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; OpenBtn.Visible = true; end)
+
+CreateBtn(Scroll, "Back Pos (Tele)", function(s) backPosActive = s; if s and lp.Character then backPosCoord = lp.Character.HumanoidRootPart.CFrame elseif not s and backPosCoord and lp.Character then lp.Character.HumanoidRootPart.CFrame = backPosCoord end end)
+CreateBtn(Scroll, "Ghim Vị Trí", function(s) ghimActive = s; if s and lp.Character then lockedPos = lp.Character.HumanoidRootPart.CFrame end end)
+CreateBtn(Scroll, "Xray ESP", function(s) xrayActive = s end)
+CreateBtn(Scroll, "Air Walk", function(s) airWalkActive = s if s then airWalkPart = Instance.new("Part", workspace); airWalkPart.Size = Vector3.new(15, 0.5, 15); airWalkPart.Anchored = true; airWalkPart.Transparency = 0.6; airWalkPart.Material = Enum.Material.Glass else if airWalkPart then airWalkPart:Destroy() end end end)
+
+-- [[ TÍNH NĂNG BYPASS TP ]]
+local Separator = Instance.new("Frame", Scroll)
+Separator.Size = UDim2.new(0.9, 0, 0, 2); Separator.BackgroundColor3 = Color3.fromRGB(40, 40, 40); Separator.BorderSizePixel = 0
+
+-- Tạo Dropdown chọn Đảo (Tự động cập nhật List theo Sea)
+local currentIslands = BuildIslandOptions()
+CreateDropdown(Scroll, "Chọn Đảo", currentIslands, function(selected)
+    _G.Islandtp = selected
+end)
+
+-- Nút Bật/Tắt Bypass TP
+CreateBtn(Scroll, "Bật Bypass TP (Fast)", function(s)
+    _G.Tpfast = s
+    if not s then PMT_StopFastHop() end
+end)
+
+-- LOGIC ĐÓNG MỞ
+local OpenBtn = Instance.new("ImageButton", ScreenGui); OpenBtn.Size = UDim2.new(0, 55, 0, 55); OpenBtn.Position = UDim2.new(1, -65, 0.5, -27); OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); OpenBtn.Image = ASSET_ID; OpenBtn.Visible = false; OpenBtn.Active = true; Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+MakeDraggable(MainFrame); MakeDraggable(OpenBtn)
+MiniBtn.MouseButton1Click:Connect(function() MainFrame:TweenSize(MainFrame.Size.Y.Offset == 440 and UDim2.new(0, 210, 0, 38) or UDim2.new(0, 210, 0, 440), "Out", "Quart", 0.3, true); MiniBtn.Text = MainFrame.Size.Y.Offset == 440 and "▶" or "▼" end)
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; OpenBtn.Visible = true end)
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true; OpenBtn.Visible = false end)
 
--- 4. VÒNG LẶP LOGIC CHÍNH
+-- VÒNG LẶP HỖ TRỢ ATTACK (FALLBACK LOGIC)
+task.spawn(function()
+    while task.wait() do
+        if not m1AuraActive then continue end
+        pcall(function()
+            local char = lp.Character; if not char then return end
+            if fastAttackActive then
+                local net = rs:WaitForChild("Modules"):WaitForChild("Net")
+                net:WaitForChild("RE/RegisterAttack"):FireServer(0)
+            end
+        end)
+        if fastAttackActive then task.wait(0.01) else task.wait(0.1) end
+    end
+end)
+
+-- Heartbeat Logic (Di chuyển & ESP)
 runService.Heartbeat:Connect(function(dt)
     local char = lp.Character; if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local root = char.HumanoidRootPart
     local target = (ghostActive and ghostModel) and ghostModel:FindFirstChild("HumanoidRootPart") or root
-    
     if localMoveDir.Magnitude > 0 then
         target.Velocity = Vector3.zero
         local moveVec = (target.CFrame.LookVector * -localMoveDir.Z) + (target.CFrame.RightVector * localMoveDir.X) + (Vector3.new(0,1,0) * localMoveDir.Y)
         if moveVec.Magnitude > 0 then target.CFrame = target.CFrame + (moveVec.Unit * (currentSpeed * 50 * dt)) end
     end
     if (ghostActive or ghimActive) and lockedPos then root.CFrame = lockedPos; root.Velocity = Vector3.zero end
-    if airWalkActive and airWalkPart then airWalkPart.Position = target.Position - Vector3.new(0, 3.5, 0) end
     if xrayActive then
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= lp and p.Character then
@@ -189,19 +460,7 @@ runService.Heartbeat:Connect(function(dt)
             end
         end
     end
+    if airWalkActive and airWalkPart then airWalkPart.Position = target.Position - Vector3.new(0, 3.5, 0) end
 end)
 
--- Reset Giant khi hồi sinh
-lp.CharacterAdded:Connect(function()
-    originalSizes = {}
-    task.wait(1)
-    if giantActive then
-        local char = lp.Character
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then originalSizes[v] = v.Size; v.Size *= 3
-            elseif v:IsA("SpecialMesh") or v:IsA("Mesh") then originalSizes[v] = v.Scale; v.Scale *= 3 end
-        end
-    end
-end)
-
-SendNotify("VŨ KHOA", "Menu đã sẵn sàng!", 3)
+SendNotify("VŨ KHOA V31", "Vũ Khoaa - M1 Aura & Fast TP Ready!", 5)
